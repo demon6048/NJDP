@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cofradía Niño Jesús de Paucarbambilla</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Playfair+Display:ital,wght@0,500;0,700;1,400&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        body {
+            background-color: #0a0503;
+            background-image:
+            linear-gradient(rgba(10, 5, 3, 0.65), rgba(15, 8, 5, 0.8)),
+            url('https://i.imgur.com/UAOAQvN.png');
+            background-size: cover;
+            background-attachment: fixed;
+            background-position: center center;
+            background-repeat: no-repeat;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        .letra-titulo { font-family: 'Cinzel Decorative', serif; }
+        .letra-texto { font-family: 'Playfair Display', serif; }
+
+        .dorado-virreinal {
+            background: linear-gradient(to bottom, #fffdf2 0%, #f7d774 15%, #c89637 35%, #3b2108 48%, #5e3b12 50%, #fde89c 53%, #c89637 75%, #1c0c01 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            filter: drop-shadow(0px -1px 0px rgba(255, 255, 255, 0.5)) drop-shadow(0px 5px 3px rgba(0, 0, 0, 0.85)) drop-shadow(0px 15px 25px rgba(0, 0, 0, 0.95));
+        }
+
+        @keyframes resplandor-divino {
+            0% { filter: drop-shadow(0px 0px 10px rgba(255, 224, 102, 0.3)) drop-shadow(0px 15px 25px rgba(0, 0, 0, 0.95)); }
+            50% { filter: drop-shadow(0px 0px 30px rgba(255, 224, 102, 0.8)) drop-shadow(0px 15px 25px rgba(0, 0, 0, 0.95)); }
+            100% { filter: drop-shadow(0px 0px 10px rgba(255, 224, 102, 0.3)) drop-shadow(0px 15px 25px rgba(0, 0, 0, 0.95)); }
+        }
+        .texto-iluminado { animation: resplandor-divino 4s ease-in-out infinite; }
+
+        @keyframes luz-fondo {
+            0% { opacity: 0.2; transform: scale(0.9); }
+            50% { opacity: 0.6; transform: scale(1.1); }
+            100% { opacity: 0.2; transform: scale(0.9); }
+        }
+        .luz-pulsante { animation: luz-fondo 4s ease-in-out infinite; }
+
+        .fondo-pergamino {
+            background-color: #f0e6d2;
+            background-image: url('https://www.transparenttextures.com/patterns/cream-paper.png');
+            border: 8px solid #3e1f0b;
+            border-radius: 8px;
+            box-shadow: inset 0 0 50px rgba(92, 46, 14, 0.6), 0 25px 50px rgba(0,0,0,0.9);
+            position: relative;
+        }
+        .fondo-pergamino::after {
+            content: ''; position: absolute; top: 6px; left: 6px; right: 6px; bottom: 6px;
+            border: 2px solid #c89637; opacity: 0.7; pointer-events: none;
+        }
+
+        .seccion-oculta { display: none !important; }
+        .aparecer { animation: fadeIn 0.8s ease-out forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .boton-nav-activo { color: #ffe066 !important; border-bottom: 2px solid #ffe066; transform: scale(1.05); }
+
+        .contenedor-marcador { background: transparent; border: none; }
+        .punto-vivo {
+            width: 100%; height: 100%; background-color: #ffe066;
+            border: 3px solid #8b4513; border-radius: 50%;
+            box-shadow: 0 0 15px #ffe066, 0 0 30px #ffe066;
+            animation: latir 1.5s infinite;
+        }
+        @keyframes latir {
+            0% { transform: scale(0.8); opacity: 0.8; }
+            50% { transform: scale(1.3); opacity: 1; }
+            100% { transform: scale(0.8); opacity: 0.8; }
+        }
+        
+        .admin-tab::-webkit-scrollbar { width: 6px; }
+        .admin-tab::-webkit-scrollbar-thumb { background: #8b4513; border-radius: 4px; }
+    </style>
+</head>
+<body class="text-gray-200 flex flex-col min-h-screen relative">
+
+    <canvas id="fuegos-artificiales" class="fixed top-0 left-0 w-full h-full z-0 pointer-events-none"></canvas>
+
+    <!-- Menú de Navegación -->
+    <nav class="w-full flex flex-wrap justify-center gap-4 md:gap-8 p-5 bg-[#1a0f0a]/80 border-b-2 border-[#c89637] backdrop-blur-md sticky top-0 z-50 shadow-[0_10px_30px_rgba(0,0,0,0.9)]">
+        <button onclick="window.cambiarSeccion('inicio', this)" class="btn-nav letra-titulo tracking-widest text-sm md:text-lg uppercase transition-all duration-300 text-gray-400 hover:text-white boton-nav-activo">Inicio</button>
+        <button onclick="window.cambiarSeccion('historia', this)" class="btn-nav letra-titulo tracking-widest text-sm md:text-lg uppercase transition-all duration-300 text-gray-400 hover:text-white">Historia</button>
+        <button onclick="window.cambiarSeccion('mayordomia', this)" class="btn-nav letra-titulo tracking-widest text-sm md:text-lg uppercase transition-all duration-300 text-gray-400 hover:text-white">Mayordomía</button>
+        <button onclick="window.cambiarSeccion('integrantes', this)" class="btn-nav letra-titulo tracking-widest text-sm md:text-lg uppercase transition-all duration-300 text-gray-400 hover:text-white">La Cuadrilla</button>
+        <button onclick="window.cambiarSeccion('actividades', this)" class="btn-nav letra-titulo tracking-widest text-sm md:text-lg uppercase transition-all duration-300 text-gray-400 hover:text-white">Actividades</button>
+        <button onclick="window.cambiarSeccion('catalogo', this)" class="btn-nav letra-titulo tracking-widest text-sm md:text-lg uppercase transition-all duration-300 text-gray-400 hover:text-white">Catálogo</button>
+        
+        <a href="https://sorteo-paucarbambilla.vercel.app/#pasos" target="_blank" class="btn-nav letra-titulo tracking-widest text-sm md:text-lg uppercase transition-all duration-300 text-[#c89637] hover:text-white hover:scale-105 flex items-center justify-center">Sorteos 🎁</a>
+        
+        <a href="https://demon6048.github.io/INVITACIONES/" target="_blank" class="btn-nav letra-titulo tracking-widest text-sm md:text-lg uppercase transition-all duration-300 text-[#c89637] hover:text-white hover:scale-105 flex items-center justify-center">Crear Invitación 💌</a>
+        
+        <button onclick="window.cambiarSeccion('recorrido', this)" class="btn-nav letra-titulo tracking-widest text-sm md:text-lg uppercase transition-all duration-300 text-[#ffe066] animate-pulse hover:text-white">En Vivo 📍</button>
+        
+        <button id="btn-admin-nav" onclick="window.cambiarSeccion('panel', this)" class="btn-nav letra-titulo tracking-widest text-sm md:text-lg uppercase transition-all duration-300 text-red-500 hover:text-white hidden">⚙️ Admin</button>
+    </nav>
+
+    <main class="w-full max-w-[1200px] mx-auto px-2 md:px-8 xl:px-12 py-12 flex justify-center relative z-10 flex-grow items-start transition-all duration-500">
+        <div class="w-full lg:w-[85%] xl:w-[80%] flex flex-col items-center min-h-[700px] px-2 md:px-0">
+            
+            <!-- CABECERA PRINCIPAL (Se oculta fuera de Inicio) -->
+            <div id="hero-header" class="text-center mb-10 aparecer flex flex-col items-center w-full transition-all duration-500 origin-top">
+                <div class="mb-4 relative group flex justify-center w-full">
+                    <div class="luz-pulsante absolute inset-0 bg-[#ffe066] blur-[70px] rounded-full w-64 h-64 md:w-80 md:h-80 mx-auto z-0"></div>
+                    <!-- Nueva imagen del Niño Jesús -->
+                    <img src="https://i.imgur.com/NwPwvhP.png" alt="Logo Cofradía" class="relative z-10 w-56 md:w-80 drop-shadow-[0_20px_25px_rgba(0,0,0,0.95)] hover:scale-105 transition-transform duration-700">
+                </div>
+                <div class="bg-[#1a0f0a]/60 px-6 py-2 rounded-full border border-[#c89637]/50 mb-4 backdrop-blur-sm z-10 mt-2">
+                    <h3 class="letra-titulo text-[#ffe066] tracking-[0.4em] uppercase text-xs md:text-sm">Cofradía de Negritos</h3>
+                </div>
+                
+                <!-- Nueva imagen de Tipografía (Reemplaza al texto) -->
+                <img src="https://i.imgur.com/2RISwHk.png" alt="Niño Jesús de Paucarbambilla" class="texto-iluminado relative z-10 w-[95%] md:w-[75%] lg:w-[65%] max-w-[700px] mb-6 object-contain drop-shadow-[0_15px_20px_rgba(0,0,0,0.85)]">
+                
+                <div class="flex items-center justify-center gap-6 w-full max-w-md z-10">
+                    <div class="h-[2px] flex-1 bg-gradient-to-r from-transparent to-[#c89637]"></div>
+                    <span class="letra-texto italic text-2xl text-[#f4e8d3] font-semibold drop-shadow-md">Huánuco - Perú</span>
+                    <div class="h-[2px] flex-1 bg-gradient-to-l from-transparent to-[#c89637]"></div>
+                </div>
+            </div>
+
+            <div class="fondo-pergamino w-full p-8 md:p-14 text-[#2d160a]">
+                
+                <!-- INICIO -->
+                <div id="inicio" class="seccion-contenido aparecer flex flex-col items-center">
+                    <div class="text-center mb-8 relative z-10 w-full">
+                        <!-- LA CRUZ -->
+                        <img src="https://i.imgur.com/cMopwfj.png" alt="Cruz de Paucarbambilla" class="h-28 md:h-36 mx-auto mb-6 drop-shadow-[0_10px_15px_rgba(0,0,0,0.5)] hover:scale-110 transition-transform duration-500">
+                        
+                        <h2 class="letra-titulo text-3xl md:text-5xl text-[#3e1f0b] mb-6 font-black leading-tight drop-shadow-sm">¡Bienvenidos a<br>Niño Jesús de Paucarbambilla!</h2>
+                        <div class="h-1 w-32 bg-gradient-to-r from-transparent via-[#8b4513] to-transparent mx-auto rounded"></div>
+                    </div>
+                    <div class="letra-texto text-lg md:text-[1.35rem] leading-loose text-justify font-medium text-[#2d160a] space-y-7 relative z-10 max-w-3xl mx-auto px-4 md:px-10">
+                        <p><span class="text-7xl float-left mr-5 letra-titulo text-[#8b4513] leading-[0.8] pt-2 drop-shadow-md">N</span>os alegra recibirlos en nuestro espacio oficial, creado para compartir y mantener viva nuestra historia, nuestras costumbres y el cariño que nos une alrededor de la tradicional Danza de los Negritos de Huánuco.</p>
+                        <p>Aquí podrán conocer más sobre nuestros orígenes, descubrir cómo nació Niño Jesús de Paucarbambilla y encontrar información sobre las personas que hacen posible esta celebración.</p>
+                        <p>También podrán conocer nuestras actividades, presentaciones, fotografías, novedades y todos los detalles de nuestra próxima celebración los días <strong>13 (la víspera), 14, 15 y 16 de enero</strong>.</p>
+                        <div class="text-center mt-12 pt-10 border-t-2 border-[#8b4513]/20 relative">
+                            <span class="absolute -top-5 left-1/2 -translate-x-1/2 text-3xl text-[#8b4513]">✦</span>
+                            <p class="letra-titulo font-bold text-2xl md:text-3xl text-[#8b4513] mb-4 leading-relaxed">Sean todos bienvenidos a<br>Niño Jesús de Paucarbambilla.</p>
+                            <p class="italic text-xl text-[#5c2e0e]">Tradición, unión, devoción y cultura que seguimos compartiendo generación tras generación.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HISTORIA -->
+                <div id="historia" class="seccion-contenido seccion-oculta aparecer">
+                    <div class="text-center mb-8"><h2 class="letra-titulo text-4xl text-[#3e1f0b] mb-4">Nuestros Orígenes</h2><div class="h-1 w-24 bg-[#8b4513] mx-auto rounded"></div></div>
+                    <div id="contenido-historia" class="bg-white/40 p-6 md:p-8 rounded-xl border-l-[8px] border-[#8b4513] shadow-lg mb-8 relative text-lg font-semibold text-[#4a2511] text-justify leading-relaxed">
+                        <p class="text-center">Cargando historia desde la base de datos...</p>
+                    </div>
+                </div>
+
+                <!-- MAYORDOMÍA -->
+                <div id="mayordomia" class="seccion-contenido seccion-oculta aparecer">
+                    <div class="text-center mb-8"><h2 class="letra-titulo text-4xl text-[#3e1f0b] mb-4">Los Mayordomos</h2><div class="h-1 w-24 bg-[#8b4513] mx-auto rounded mb-4"></div><p class="letra-texto text-lg font-semibold text-[#5c2e0e]">Ellos son los encargados de organizar la festividad.</p></div>
+                    <div id="contenido-mayordomia" class="grid grid-cols-1 md:grid-cols-2 gap-8"><p class="text-center text-[#4a2511] col-span-full">Cargando datos...</p></div>
+                </div>
+
+                <!-- LA CUADRILLA -->
+                <div id="integrantes" class="seccion-contenido seccion-oculta aparecer">
+                    <div class="text-center mb-8"><h2 class="letra-titulo text-4xl text-[#3e1f0b] mb-4">La Cuadrilla</h2><div class="h-1 w-24 bg-[#8b4513] mx-auto rounded mb-4"></div><p class="letra-texto text-lg font-semibold text-[#5c2e0e]">Haz clic en la foto de un integrante para ver su reseña.</p></div>
+                    <div id="contenido-integrantes" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"><p class="text-center text-[#4a2511] col-span-full">Cargando integrantes...</p></div>
+                </div>
+
+                <!-- ACTIVIDADES -->
+                <div id="actividades" class="seccion-contenido seccion-oculta aparecer">
+                    <div class="text-center mb-8"><h2 class="letra-titulo text-4xl text-[#3e1f0b] mb-4">Actividades y Eventos</h2><div class="h-1 w-24 bg-[#8b4513] mx-auto rounded mb-4"></div></div>
+                    <div id="contenido-actividades" class="space-y-6"><p class="text-center text-[#4a2511] col-span-full">Cargando actividades...</p></div>
+                </div>
+
+                <!-- CATÁLOGO -->
+                <div id="catalogo" class="seccion-contenido seccion-oculta aparecer">
+                    <div class="text-center mb-8"><h2 class="letra-titulo text-4xl text-[#3e1f0b] mb-4">Catálogo Oficial</h2><div class="h-1 w-24 bg-[#8b4513] mx-auto rounded mb-4"></div><p class="letra-texto text-lg font-semibold text-[#5c2e0e]">Lleva un recuerdo y apoya a nuestra cofradía.</p></div>
+                    <div id="contenido-catalogo" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"><p class="text-center text-[#4a2511] col-span-full">Cargando catálogo...</p></div>
+                </div>
+
+                <!-- RECORRIDO GPS EN VIVO -->
+                <div id="recorrido" class="seccion-contenido seccion-oculta aparecer w-full">
+                    <div class="text-center mb-6">
+                        <h2 class="letra-titulo text-3xl md:text-4xl text-[#3e1f0b] mb-2">Recorrido en Vivo</h2>
+                        <div class="h-1 w-24 bg-[#8b4513] mx-auto rounded mb-4"></div>
+                        <p class="letra-texto text-lg font-semibold text-[#5c2e0e]">Sigue a la cuadrilla por las calles de Huánuco.</p>
+                    </div>
+                    <div class="w-full bg-[#3e1f0b] text-[#ffe066] p-3 rounded-t-xl text-center letra-titulo font-bold text-sm md:text-base shadow-inner border-2 border-b-0 border-[#8b4513]">
+                        📣 <span id="texto-estado-mapa">Esperando actualización de la directiva...</span>
+                    </div>
+                    <!-- Filtro ajustado para OpenStreetMap para mantener legibilidad -->
+                    <div class="w-full h-[400px] md:h-[500px] border-4 border-[#8b4513] rounded-b-xl shadow-[0_10px_20px_rgba(0,0,0,0.5)] overflow-hidden relative" style="filter: sepia(0.2) contrast(1.1);">
+                        <div id="mapa-leaflet" class="w-full h-full z-10"></div>
+                    </div>
+                </div>
+
+                <!-- PANEL ADMIN -->
+                <div id="panel" class="seccion-contenido seccion-oculta aparecer">
+                    <div class="text-center mb-8">
+                        <h2 class="letra-titulo text-4xl text-red-800 mb-4">Centro de Mando Pro</h2>
+                        <div class="h-1 w-24 bg-red-800 mx-auto rounded mb-4"></div>
+                    </div>
+                    
+                    <div class="bg-gray-200 p-4 md:p-6 rounded-lg border-4 border-gray-400 text-black shadow-inner">
+                        <div class="mb-4">
+                            <label class="block letra-titulo font-bold mb-2 text-[#3e1f0b]">Módulo a gestionar:</label>
+                            <select id="admin-selector" onchange="window.cambiarTabAdmin()" class="w-full p-3 border-2 border-[#8b4513] rounded bg-white font-bold text-[#3e1f0b] shadow-sm cursor-pointer">
+                                <option value="admin-historia">📖 Historia</option>
+                                <option value="admin-mayordomia">👑 Mayordomía</option>
+                                <option value="admin-integrantes">🕺 La Cuadrilla (con Reseñas)</option>
+                                <option value="admin-actividades">📅 Actividades (Detallado)</option>
+                                <option value="admin-catalogo">🛍️ Catálogo (Fotos y WhatsApp)</option>
+                                <option value="admin-envivo" class="bg-red-100 font-black">📍 Transmisión GPS</option>
+                            </select>
+                        </div>
+
+                        <!-- Panel Historia -->
+                        <div id="admin-historia" class="admin-tab">
+                            <textarea id="input-historia" class="w-full p-3 border-2 border-gray-300 rounded h-40 mb-2 text-black text-sm" placeholder="Escribe aquí la historia de la cofradía..."></textarea>
+                            <button onclick="window.guardarHistoria()" class="bg-[#3e1f0b] text-white px-4 py-3 rounded font-bold w-full hover:bg-[#8b4513] transition uppercase letra-titulo shadow-md">Guardar Historia</button>
+                        </div>
+
+                        <!-- Panel Mayordomía -->
+                        <div id="admin-mayordomia" class="admin-tab hidden">
+                            <input type="text" id="mayor-nombre" placeholder="Nombre completo" class="w-full p-2 mb-2 border rounded">
+                            <input type="text" id="mayor-cargo" placeholder="Cargo (Ej: Mayordomo Mayor)" class="w-full p-2 mb-2 border rounded">
+                            <input type="text" id="mayor-foto" placeholder="URL de Foto (Imgur/Facebook)" class="w-full p-2 mb-2 border rounded text-xs">
+                            <button onclick="window.agregarItem('mayordomia', ['mayor-nombre', 'mayor-cargo', 'mayor-foto'])" class="bg-green-700 text-white px-4 py-2 rounded font-bold w-full hover:bg-green-600 transition mb-4 uppercase text-sm">➕ Añadir Mayordomo</button>
+                            <div id="lista-admin-mayordomia" class="space-y-2 mt-4 max-h-40 overflow-y-auto bg-gray-100 p-2 border rounded shadow-inner"></div>
+                        </div>
+
+                        <!-- Panel Integrantes -->
+                        <div id="admin-integrantes" class="admin-tab hidden">
+                            <input type="text" id="int-nombre" placeholder="Nombre del integrante" class="w-full p-2 mb-2 border rounded">
+                            <input type="text" id="int-rol" placeholder="Rol (Ej: Caporal)" class="w-full p-2 mb-2 border rounded">
+                            <input type="text" id="int-foto" placeholder="URL de Foto (Obligatorio para perfil)" class="w-full p-2 mb-2 border rounded text-xs">
+                            <textarea id="int-bio" placeholder="Reseña personal: Estudios, tiempo bailando, anhelos..." class="w-full p-2 mb-2 border rounded text-sm h-20"></textarea>
+                            <button onclick="window.agregarItem('integrantes', ['int-nombre', 'int-rol', 'int-foto', 'int-bio'])" class="bg-green-700 text-white px-4 py-2 rounded font-bold w-full hover:bg-green-600 transition mb-4 uppercase text-sm">➕ Añadir Integrante</button>
+                            <div id="lista-admin-integrantes" class="space-y-2 mt-4 max-h-40 overflow-y-auto bg-gray-100 p-2 border rounded shadow-inner"></div>
+                        </div>
+
+                        <!-- Panel Actividades -->
+                        <div id="admin-actividades" class="admin-tab hidden">
+                            <input type="text" id="act-titulo" placeholder="Título (Ej: Gran Pollada Bailable)" class="w-full p-2 mb-2 border rounded">
+                            <div class="flex gap-2 mb-2">
+                                <input type="text" id="act-fecha" placeholder="Fecha (Ej: 15 Dic)" class="w-1/2 p-2 border rounded">
+                                <input type="time" id="act-hora" class="w-1/2 p-2 border rounded text-gray-500">
+                            </div>
+                            <input type="text" id="act-foto" placeholder="URL del Afiche o Foto (Imgur)" class="w-full p-2 mb-2 border rounded text-xs">
+                            <textarea id="act-desc" placeholder="Descripción: Para quién es, dónde será, costo de la tarjeta..." class="w-full p-2 mb-2 border rounded text-sm h-24"></textarea>
+                            <button onclick="window.agregarItem('actividades', ['act-titulo', 'act-fecha', 'act-foto', 'act-hora', 'act-desc'])" class="bg-green-700 text-white px-4 py-2 rounded font-bold w-full hover:bg-green-600 transition mb-4 uppercase text-sm">➕ Añadir Actividad</button>
+                            <div id="lista-admin-actividades" class="space-y-2 mt-4 max-h-40 overflow-y-auto bg-gray-100 p-2 border rounded shadow-inner"></div>
+                        </div>
+
+                        <!-- Panel Catálogo -->
+                        <div id="admin-catalogo" class="admin-tab hidden">
+                            <input type="text" id="cat-nombre" placeholder="Nombre del Producto" class="w-full p-2 mb-2 border rounded">
+                            <input type="number" id="cat-precio" placeholder="Precio (Soles)" class="w-full p-2 mb-2 border rounded">
+                            <textarea id="cat-desc" placeholder="Detalles: Tallas disponibles, material, colores..." class="w-full p-2 mb-2 border rounded text-sm h-16"></textarea>
+                            <input type="number" id="cat-tel" placeholder="Número WhatsApp del Vendedor (Ej: 999888777)" class="w-full p-2 mb-2 border rounded">
+                            
+                            <p class="text-xs font-bold text-gray-600 mt-2 mb-1">Imágenes del Producto (Mínimo 1):</p>
+                            <input type="text" id="cat-foto1" placeholder="URL Foto 1 (Principal)" class="w-full p-2 mb-1 border rounded text-xs border-blue-400">
+                            <input type="text" id="cat-foto2" placeholder="URL Foto 2 (Opcional)" class="w-full p-2 mb-1 border rounded text-xs">
+                            <input type="text" id="cat-foto3" placeholder="URL Foto 3 (Opcional)" class="w-full p-2 mb-4 border rounded text-xs">
+                            
+                            <button onclick="window.agregarItem('catalogo', ['cat-nombre', 'cat-precio', 'cat-foto1', 'cat-desc', 'cat-tel', 'cat-foto2', 'cat-foto3'])" class="bg-green-700 text-white px-4 py-2 rounded font-bold w-full hover:bg-green-600 transition mb-4 uppercase text-sm">➕ Añadir Producto</button>
+                            <div id="lista-admin-catalogo" class="space-y-2 mt-4 max-h-40 overflow-y-auto bg-gray-100 p-2 border rounded shadow-inner"></div>
+                        </div>
+
+                        <!-- Panel En Vivo GPS -->
+                        <div id="admin-envivo" class="admin-tab hidden text-center">
+                            <p class="text-sm font-bold text-gray-700 mb-2">1. Letrero para el público:</p>
+                            <input type="text" id="input-estado-mapa" placeholder="Ej: Visitando a la familia..." class="w-full p-3 mb-2 border-2 border-gray-400 rounded">
+                            <button onclick="window.guardarEstadoMapa()" class="bg-blue-600 text-white px-4 py-2 rounded font-bold w-full hover:bg-blue-700 transition mb-6 shadow-md">Actualizar Letrero</button>
+                            <p class="text-sm font-bold text-gray-700 mb-2">2. Iniciar seguimiento de este celular:</p>
+                            <button id="btn-transmitir-admin" onclick="window.transmitirGPS()" class="bg-red-700 text-white px-6 py-4 rounded-xl letra-titulo text-lg hover:bg-red-600 transition-colors uppercase font-black shadow-lg w-full border-2 border-red-900 animate-pulse">📡 INICIAR TRANSMISIÓN OFICIAL</button>
+                            <button onclick="window.simularMovimiento()" class="mt-8 bg-gray-400 text-black px-4 py-2 rounded text-xs font-bold hover:bg-gray-500 w-full">Simulador (Para Pruebas)</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <img src="https://i.imgur.com/PVAwPZ4.png" alt="Caporal" class="fixed bottom-0 left-2 md:left-8 lg:left-12 w-24 md:w-32 lg:w-40 object-contain drop-shadow-[0_10px_15px_rgba(0,0,0,0.8)] hover:scale-105 transition-transform duration-500 origin-bottom z-40 pointer-events-auto">
+    <img src="https://i.imgur.com/p1C9CZ3.png" alt="Corochano" class="fixed bottom-0 right-2 md:right-8 lg:right-12 w-24 md:w-32 lg:w-40 object-contain drop-shadow-[0_10px_15px_rgba(0,0,0,0.8)] hover:scale-105 transition-transform duration-500 origin-bottom z-40 pointer-events-auto">
+
+    <footer class="w-full bg-[#0a0503] border-t-2 border-[#c89637] py-8 text-center z-50 mt-auto shadow-[0_-10px_20px_rgba(0,0,0,0.8)] relative">
+        <p class="letra-titulo text-[#ffe066] text-base md:text-lg tracking-widest relative z-20 flex items-center justify-center gap-2">
+            <span onclick="window.abrirModalPassword()" class="cursor-pointer opacity-20 hover:opacity-100 transition-opacity duration-300" title="Acceso Clasificado">🔒</span>
+            © 2026 Cofradía Niño Jesús de Paucarbambilla.
+        </p>
+    </footer>
+
+    <!-- Botón Flotante Carrito -->
+    <button id="btn-flotante-carrito" onclick="window.abrirModalCarrito()" class="fixed bottom-6 right-6 md:bottom-10 md:right-10 bg-green-600 text-white rounded-full p-4 md:p-5 shadow-[0_10px_25px_rgba(0,0,0,0.8)] z-[90] hidden hover:bg-green-500 hover:scale-110 transition-all border-2 border-white">
+        <span class="text-2xl md:text-3xl">🛒</span>
+        <span id="badge-carrito" class="absolute -top-2 -right-2 bg-red-600 text-white text-xs md:text-sm font-bold w-6 h-6 md:w-8 md:h-8 flex items-center justify-center rounded-full border-2 border-white">0</span>
+    </button>
+
+    <!-- Modal Ficha / Detalles de Producto -->
+    <div id="modal-detalle" class="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 hidden opacity-0 transition-opacity duration-300 p-2 md:p-6" onclick="if(event.target === this) window.cerrarModalDetalle()">
+        <div class="bg-[#f0e6d2] border-4 border-[#3e1f0b] rounded-2xl w-full max-w-4xl shadow-[0_0_50px_rgba(0,0,0,1)] relative flex flex-col md:flex-row overflow-hidden max-h-[95vh]">
+            
+            <!-- Botón Cerrar Gigante -->
+            <button onclick="window.cerrarModalDetalle()" class="absolute top-2 right-2 md:top-4 md:right-4 bg-red-700 text-white w-10 h-10 rounded-full text-2xl font-black shadow-lg hover:bg-red-600 z-50 flex items-center justify-center border-2 border-[#3e1f0b]">&times;</button>
+            
+            <!-- Sección Izquierda: Carrusel -->
+            <div id="md-contenedor-img" class="w-full md:w-1/2 bg-black relative flex items-center justify-center min-h-[250px] md:min-h-[400px]">
+                <img id="md-img" src="" class="w-full h-full object-contain max-h-[40vh] md:max-h-full">
+                <button onclick="window.cambiarImgModal(-1)" id="md-btn-prev" class="absolute left-2 bg-black/60 text-white p-3 rounded-full hover:bg-black hidden text-xl font-bold">◀</button>
+                <button onclick="window.cambiarImgModal(1)" id="md-btn-next" class="absolute right-2 bg-black/60 text-white p-3 rounded-full hover:bg-black hidden text-xl font-bold">▶</button>
+            </div>
+
+            <!-- Sección Derecha: Info y Carrito -->
+            <div class="w-full md:w-1/2 p-6 md:p-8 flex flex-col overflow-y-auto">
+                <h3 id="md-titulo" class="letra-titulo text-[#3e1f0b] text-3xl md:text-4xl font-black mb-2 leading-tight">Título</h3>
+                <p id="md-subtitulo" class="letra-texto text-[#8b4513] uppercase tracking-wider font-black text-lg md:text-xl mb-4 border-b-2 border-[#8b4513]/30 pb-2">Subtítulo</p>
+                <div id="md-desc" class="letra-texto text-[#2d160a] text-lg leading-relaxed text-justify whitespace-pre-line mb-6 flex-grow">Descripción...</div>
+                
+                <div id="md-contenedor-carrito" class="mt-auto hidden pt-4 border-t-2 border-[#8b4513]/20">
+                    <button id="md-btn-add-carrito" class="bg-[#3e1f0b] text-[#ffe066] px-6 py-4 rounded-xl letra-titulo text-center text-xl hover:bg-[#8b4513] transition-colors uppercase font-black w-full shadow-lg flex items-center justify-center gap-3 border-2 border-[#c89637]">
+                        <span>🛒</span> Añadir al Carrito
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Mi Carrito -->
+    <div id="modal-carrito" class="fixed inset-0 z-[130] flex items-center justify-center bg-black/80 hidden opacity-0 transition-opacity duration-300 p-4" onclick="if(event.target === this) window.cerrarModalCarrito()">
+        <div class="bg-white border-4 border-green-700 rounded-xl w-full max-w-lg shadow-[0_0_50px_rgba(0,0,0,0.9)] relative flex flex-col max-h-[90vh]">
+            <div class="bg-green-700 text-white p-4 flex justify-between items-center rounded-t-md">
+                <h3 class="letra-titulo text-2xl font-bold">🛒 Tu Pedido</h3>
+                <button onclick="window.cerrarModalCarrito()" class="text-3xl hover:text-red-300 font-bold leading-none">&times;</button>
+            </div>
+            <div id="lista-carrito-ui" class="p-4 flex-grow overflow-y-auto space-y-3 bg-gray-50"></div>
+            <div class="p-4 bg-gray-200 border-t-2 border-gray-300 rounded-b-md">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-xl font-bold text-gray-700">Total:</span>
+                    <span id="total-carrito-ui" class="text-3xl font-black text-red-700">S/ 0.00</span>
+                </div>
+                <button onclick="window.enviarPedidoWhatsApp()" class="bg-green-600 text-white px-6 py-4 rounded-lg letra-titulo text-center text-xl hover:bg-green-500 transition-colors uppercase font-bold w-full shadow-lg flex items-center justify-center gap-2">
+                    <span>💬</span> Enviar Pedido por WhatsApp
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modales de Sistema (Avisos y Login) -->
+    <div id="modal-mensaje" class="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 hidden opacity-0 transition-opacity duration-300" onclick="if(event.target === this) window.cerrarModal()">
+        <div class="bg-[#f0e6d2] border-4 border-[#3e1f0b] rounded-xl p-6 max-w-sm w-[90%] text-center shadow-2xl">
+            <h3 class="letra-titulo text-[#8b4513] text-xl mb-2">Aviso</h3>
+            <p id="modal-texto" class="letra-texto text-[#3e1f0b] text-lg font-semibold mb-6"></p>
+            <button onclick="window.cerrarModal()" class="bg-[#3e1f0b] text-[#f0e6d2] px-6 py-2 rounded letra-titulo text-sm hover:bg-[#c89637] hover:text-black transition-colors uppercase font-bold">Entendido</button>
+        </div>
+    </div>
+    <div id="modal-password" class="fixed inset-0 z-[150] flex items-center justify-center bg-black/90 hidden opacity-0 transition-opacity duration-300" onclick="if(event.target === this) window.cerrarModalPassword()">
+        <div class="bg-[#1a0f0a] border-2 border-[#c89637] rounded-xl p-6 max-w-sm w-[90%] text-center shadow-[0_0_40px_rgba(200,150,55,0.4)]">
+            <h3 class="letra-titulo text-[#ffe066] text-xl mb-4">Acceso de Seguridad</h3>
+            <input type="password" id="input-password" class="w-full p-2 mb-6 rounded border border-[#c89637] bg-[#2d160a] text-[#ffe066] text-center focus:outline-none focus:ring-2 focus:ring-[#ffe066] font-black tracking-[0.2em]" placeholder="********">
+            <div class="flex gap-4 justify-center">
+                <button onclick="window.cerrarModalPassword()" class="bg-gray-700 text-white px-4 py-2 rounded letra-titulo text-sm uppercase font-bold w-1/2">Cancelar</button>
+                <button onclick="window.verificarAdmin()" class="bg-[#c89637] text-black px-4 py-2 rounded letra-titulo text-sm uppercase font-bold w-1/2">Ingresar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('fuegos-artificiales');
+        const ctx = canvas.getContext('2d');
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        let particles = []; let fireworks = [];
+        const colors = ['255, 215, 0', '255, 140, 0', '255, 255, 255', '218, 165, 32', '255, 69, 0'];
+        
+        class Firework {
+            constructor() {
+                this.x = Math.random() * canvas.width; this.y = canvas.height;
+                this.targetY = canvas.height * (Math.random() * 0.4 + 0.1); 
+                this.speed = Math.random() * 3 + 4; 
+                this.angle = Math.atan2(this.targetY - this.y, (this.x + (Math.random() * 150 - 75)) - this.x);
+                this.vx = Math.cos(this.angle) * this.speed; this.vy = Math.sin(this.angle) * this.speed;
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+                this.trail = [];
+            }
+            update() {
+                this.trail.push({x: this.x, y: this.y});
+                if(this.trail.length > 5) this.trail.shift();
+                this.x += this.vx; this.y += this.vy;
+                if (this.vy >= 0 || this.y <= this.targetY) {
+                    let particleCount = Math.floor(Math.random() * 100 + 120); 
+                    for (let i = 0; i < particleCount; i++) particles.push(new Particle(this.x, this.y, this.color));
+                    return false; 
+                } return true; 
+            }
+            draw() {
+                ctx.beginPath();
+                if(this.trail.length > 0) { ctx.moveTo(this.trail[0].x, this.trail[0].y); ctx.lineTo(this.x, this.y); }
+                ctx.strokeStyle = `rgba(${this.color}, 1)`; ctx.lineWidth = 3; ctx.stroke();
+            }
+        }
+        
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x; this.y = y; this.color = color;
+                const angle = Math.random() * Math.PI * 2; const speed = Math.random() * 12 + 2; 
+                this.vx = Math.cos(angle) * speed; this.vy = Math.sin(angle) * speed;
+                this.friction = 0.93; this.gravity = 0.07; this.alpha = 1; this.decay = Math.random() * 0.012 + 0.008;
+                this.trail = [];
+            }
+            update() {
+                this.trail.push({x: this.x, y: this.y});
+                if(this.trail.length > 8) this.trail.shift();
+                this.vx *= this.friction; this.vy *= this.friction; this.vy += this.gravity;
+                this.x += this.vx; this.y += this.vy; this.alpha -= this.decay;
+                return this.alpha > 0;
+            }
+            draw() {
+                ctx.beginPath();
+                if (this.trail.length > 0) { ctx.moveTo(this.trail[0].x, this.trail[0].y); ctx.lineTo(this.x, this.y); }
+                ctx.strokeStyle = `rgba(${this.color}, ${this.alpha})`; ctx.lineWidth = Math.random() * 2 + 0.8; ctx.stroke();
+            }
+        }
+        
+        function animate() {
+            ctx.globalCompositeOperation = 'destination-out'; 
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.globalCompositeOperation = 'lighter';
+            
+            if (Math.random() < 0.015) fireworks.push(new Firework());
+            
+            fireworks = fireworks.filter(fw => fw.update()); 
+            fireworks.forEach(fw => fw.draw());
+            
+            particles = particles.filter(p => p.update()); 
+            particles.forEach(p => p.draw());
+            
+            requestAnimationFrame(animate);
+        }
+        animate();
+    </script>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        window.mapaPasacalle = null; window.marcadorCofradia = null;
+        let watchId = null; let simulacionInterval = null;
+        
+        window.carrito = [];
+        window.telefonoTiendaGlobal = '999999999';
+        window.imagenesModal = [];
+        window.imgIndex = 0;
+
+        // 🔥🔥🔥 TUS LLAVES REALES Y EXACTAS DE FIREBASE 🔥🔥🔥
+        const firebaseConfig = {
+            apiKey: "AIzaSyA4qEMRGtMaHemRZ73pLIg0cJvjo-QcUSA",
+            authDomain: "cofradia-paucarbambilla.firebaseapp.com",
+            projectId: "cofradia-paucarbambilla",
+            storageBucket: "cofradia-paucarbambilla.firebasestorage.app",
+            messagingSenderId: "99765788576",
+            appId: "1:99765788576:web:4b1505d93d62983fe30ec5"
+        };
+        const appId = 'cofradia-paucarbambilla';
+        let db, auth;
+
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app); auth = getAuth(app);
+            iniciarBaseDeDatos();
+        } catch(e) { console.error("Error al iniciar Firebase", e); }
+
+        window.cambiarSeccion = function(idSeccion, btn) {
+            document.querySelectorAll('.seccion-contenido').forEach(s => s.classList.add('seccion-oculta'));
+            document.getElementById(idSeccion).classList.remove('seccion-oculta');
+            document.querySelectorAll('.btn-nav').forEach(b => b.classList.remove('boton-nav-activo', 'text-[#ffe066]'));
+            if(btn) btn.classList.add('boton-nav-activo');
+            
+            const hero = document.getElementById('hero-header');
+            if(idSeccion === 'inicio') { 
+                hero.classList.remove('h-0', 'opacity-0', 'pointer-events-none', 'mb-0', 'overflow-hidden');
+                hero.classList.add('mb-10');
+            } else { 
+                hero.classList.add('h-0', 'opacity-0', 'pointer-events-none', 'mb-0', 'overflow-hidden');
+                hero.classList.remove('mb-10');
+            }
+            if (idSeccion === 'recorrido' && window.mapaPasacalle) setTimeout(() => { window.mapaPasacalle.invalidateSize(); }, 300);
+        };
+        
+        window.abrirModalDetalle = function(titulo, subtitulo, imgsStr, descripcion, esProducto, objStr) {
+            document.getElementById('md-titulo').innerText = titulo;
+            document.getElementById('md-subtitulo').innerText = subtitulo;
+            document.getElementById('md-desc').innerText = descripcion || 'Sin información adicional.';
+            
+            window.imagenesModal = imgsStr.split('||').filter(u => u && u.trim() !== '');
+            if(window.imagenesModal.length === 0) window.imagenesModal = ['https://placehold.co/400x400/3e1f0b/ffe066?text=Foto'];
+            window.imgIndex = 0;
+            document.getElementById('md-img').src = window.imagenesModal[0];
+            
+            const btnPrev = document.getElementById('md-btn-prev'); const btnNext = document.getElementById('md-btn-next');
+            const contImg = document.getElementById('md-contenedor-img');
+            if(window.imagenesModal.length > 1) { 
+                btnPrev.classList.remove('hidden'); btnNext.classList.remove('hidden');
+                contImg.classList.remove('hidden');
+            } else { 
+                btnPrev.classList.add('hidden'); btnNext.classList.add('hidden');
+                if(window.imagenesModal[0].includes('placehold') && !esProducto) contImg.classList.add('hidden');
+                else contImg.classList.remove('hidden');
+            }
+
+            const divCarrito = document.getElementById('md-contenedor-carrito');
+            if(esProducto) {
+                divCarrito.classList.remove('hidden');
+                document.getElementById('md-btn-add-carrito').onclick = () => window.agregarAlCarrito(objStr);
+            } else {
+                divCarrito.classList.add('hidden');
+            }
+
+            const m = document.getElementById('modal-detalle'); m.classList.remove('hidden'); setTimeout(()=>m.classList.remove('opacity-0'),10);
+        };
+        
+        window.cambiarImgModal = function(dir) {
+            window.imgIndex += dir;
+            if(window.imgIndex < 0) window.imgIndex = window.imagenesModal.length - 1;
+            if(window.imgIndex >= window.imagenesModal.length) window.imgIndex = 0;
+            document.getElementById('md-img').src = window.imagenesModal[window.imgIndex];
+        };
+        window.cerrarModalDetalle = () => { const m = document.getElementById('modal-detalle'); m.classList.add('opacity-0'); setTimeout(()=>m.classList.add('hidden'),300); };
+        
+        window.agregarAlCarrito = function(objStr) {
+            const prod = JSON.parse(decodeURIComponent(objStr));
+            let existe = window.carrito.find(i => i.id === prod.id);
+            if(existe) existe.cantidad++;
+            else { window.carrito.push({ ...prod, cantidad: 1 }); window.telefonoTiendaGlobal = prod.tel || window.telefonoTiendaGlobal; }
+            
+            window.cerrarModalDetalle(); window.mostrarMensaje("🛒 Agregado al carrito"); window.actualizarBotonCarrito();
+        };
+
+        window.actualizarBotonCarrito = function() {
+            const btn = document.getElementById('btn-flotante-carrito'); const badge = document.getElementById('badge-carrito');
+            const total = window.carrito.reduce((s, i) => s + i.cantidad, 0);
+            if(total > 0) { btn.classList.remove('hidden'); badge.innerText = total; } else { btn.classList.add('hidden'); }
+        };
+
+        window.abrirModalCarrito = function() {
+            const lista = document.getElementById('lista-carrito-ui');
+            if(window.carrito.length === 0) { lista.innerHTML = `<p class="text-center text-gray-500 py-6">Tu carrito está vacío</p>`; }
+            else {
+                lista.innerHTML = window.carrito.map((item, index) => `
+                    <div class="flex items-center gap-3 bg-white p-3 rounded shadow-sm border">
+                        <img src="${item.img}" class="w-16 h-16 object-cover rounded border">
+                        <div class="flex-grow">
+                            <h4 class="font-bold text-gray-800 leading-tight">${item.nombre}</h4>
+                            <p class="text-red-700 font-black">S/ ${item.precio} x ${item.cantidad}</p>
+                        </div>
+                        <button onclick="window.eliminarDelCarrito(${index})" class="bg-red-100 text-red-600 px-3 py-2 rounded font-bold hover:bg-red-200">X</button>
+                    </div>`).join('');
+            }
+            const total = window.carrito.reduce((s, i) => s + (parseFloat(i.precio) * i.cantidad), 0);
+            document.getElementById('total-carrito-ui').innerText = `S/ ${total.toFixed(2)}`;
+            const m = document.getElementById('modal-carrito'); m.classList.remove('hidden'); setTimeout(()=>m.classList.remove('opacity-0'),10);
+        };
+        
+        window.cerrarModalCarrito = () => { const m = document.getElementById('modal-carrito'); m.classList.add('opacity-0'); setTimeout(()=>m.classList.add('hidden'),300); };
+        window.eliminarDelCarrito = function(index) { window.carrito.splice(index, 1); window.actualizarBotonCarrito(); window.abrirModalCarrito(); };
+
+        window.enviarPedidoWhatsApp = function() {
+            if(window.carrito.length === 0) return window.mostrarMensaje("El carrito está vacío.");
+            let texto = "Hola, me gustaría hacer el siguiente pedido:\n\n";
+            let total = 0;
+            window.carrito.forEach(i => { texto += `✅ ${i.cantidad}x ${i.nombre} (S/ ${i.precio})\n`; total += (parseFloat(i.precio) * i.cantidad); });
+            texto += `\n*TOTAL: S/ ${total.toFixed(2)}*`;
+            window.open(`https://wa.me/51${window.telefonoTiendaGlobal}?text=${encodeURIComponent(texto)}`, '_blank');
+        };
+
+        window.mostrarMensaje = (t) => { document.getElementById('modal-texto').innerText=t; const m=document.getElementById('modal-mensaje'); m.classList.remove('hidden'); setTimeout(()=>m.classList.remove('opacity-0'),10); };
+        window.cerrarModal = () => { const m=document.getElementById('modal-mensaje'); m.classList.add('opacity-0'); setTimeout(()=>m.classList.add('hidden'),300); };
+        
+        const getColRef = (colName) => collection(db, 'artifacts', appId, 'public', 'data', colName);
+        async function iniciarBaseDeDatos() { if(!auth) return; try { await signInAnonymously(auth); escucharDatosNube(); } catch (error) { console.error(error); } }
+        const escapeStr = (str) => (str || '').replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/\n/g, '\\n');
+        
+        function renderMayordomo(d) {
+            return `<div class="border-2 border-[#8b4513] p-4 text-center bg-white/30 rounded-lg shadow-md flex flex-col items-center">
+                <img src="${d.c3 || 'https://placehold.co/400x400/3e1f0b/ffe066?text=Foto'}" class="w-24 h-24 rounded-full border-4 border-[#c89637] object-cover mb-3 shadow-lg">
+                <h4 class="letra-titulo text-xl text-[#3e1f0b] font-bold">${d.c1}</h4>
+                <p class="text-sm uppercase text-[#8b4513] font-bold">${d.c2}</p>
+            </div>`;
+        }
+        
+        function renderIntegrante(d) {
+            const imgUrl = d.c3 || 'https://placehold.co/400x400/3e1f0b/ffe066?text=Bailante';
+            return `<div class="border border-[#8b4513]/50 bg-white/20 rounded-lg shadow overflow-hidden cursor-pointer hover:scale-105 transition" onclick="window.abrirModalDetalle('${escapeStr(d.c1)}', '${escapeStr(d.c2)}', '${imgUrl}', '${escapeStr(d.c4)}', false)">
+                <img src="${imgUrl}" class="w-full h-48 object-cover border-b-2 border-[#8b4513]">
+                <div class="p-3 text-center"><h4 class="letra-titulo text-lg text-[#3e1f0b] font-bold">${d.c1}</h4><p class="text-xs uppercase text-[#8b4513] font-bold">${d.c2}</p></div>
+            </div>`;
+        }
+        
+        function renderActividad(d) {
+            const imgHTML = d.c3 ? `<img src="${d.c3}" class="w-full md:w-48 h-48 object-cover border-r-2 border-red-800/30">` : '';
+            return `<div class="bg-red-900/5 border-l-[6px] border-red-800 rounded-r-xl shadow-md flex flex-col md:flex-row overflow-hidden mb-4">
+                ${imgHTML}
+                <div class="p-5 flex-grow">
+                    <div class="flex justify-between items-start mb-2"><h4 class="letra-titulo text-red-900 font-bold text-2xl">${d.c1}</h4><span class="bg-red-800 text-white px-3 py-1 rounded text-sm font-bold">${d.c2} ${d.c4 ? '| '+d.c4 : ''}</span></div>
+                    <p class="letra-texto text-[#4a2511] text-justify leading-relaxed">${(d.c5 || '').replace(/\n/g, '<br>')}</p>
+                </div>
+            </div>`;
+        }
+        
+        function renderProducto(d, id) {
+            const imgs = [d.c3, d.c6, d.c7].filter(Boolean).join('||');
+            const imgMain = d.c3 || 'https://placehold.co/400x400/3e1f0b/ffe066?text=Producto';
+            const prodObj = encodeURIComponent(JSON.stringify({ id: id, nombre: d.c1, precio: d.c2, img: imgMain, tel: d.c5 }));
+            return `<div class="border-4 border-[#8b4513] rounded-xl overflow-hidden bg-white/50 text-center shadow-lg flex flex-col h-full">
+                <img src="${imgMain}" class="w-full h-56 object-cover border-b-4 border-[#8b4513] cursor-pointer" onclick="window.abrirModalDetalle('${escapeStr(d.c1)}', 'S/ ${d.c2}', '${imgs}', '${escapeStr(d.c4)}', true, '${prodObj}')">
+                <div class="p-4 flex flex-col flex-grow justify-between">
+                    <div><h4 class="letra-titulo text-[#3e1f0b] font-bold text-xl">${d.c1}</h4><p class="letra-texto font-black text-2xl text-red-800 mt-1 mb-3">S/ ${d.c2}</p></div>
+                    <button onclick="window.abrirModalDetalle('${escapeStr(d.c1)}', 'S/ ${d.c2}', '${imgs}', '${escapeStr(d.c4)}', true, '${prodObj}')" class="bg-[#3e1f0b] text-[#f0e6d2] px-4 py-2 rounded letra-titulo hover:bg-[#c89637] hover:text-black transition-colors w-full font-bold">Ver Detalles</button>
+                </div>
+            </div>`;
+        }
+
+        function escucharDatosNube() {
+            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'historia', 'principal'), (s) => {
+                if (s.exists() && s.data().texto) {
+                    document.getElementById('contenido-historia').innerHTML = `<p>${s.data().texto.replace(/\n/g, '<br>')}</p>`;
+                    document.getElementById('input-historia').value = s.data().texto;
+                }
+            });
+            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'mapa', 'estado'), (s) => {
+                if (s.exists() && s.data().texto) {
+                    document.getElementById('texto-estado-mapa').innerText = s.data().texto;
+                    document.getElementById('input-estado-mapa').value = s.data().texto;
+                }
+            });
+            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'mapa', 'ubicacion'), (s) => {
+                if(watchId) return; 
+                if (s.exists() && window.marcadorCofradia && window.mapaPasacalle) {
+                    const d = s.data(); window.marcadorCofradia.setLatLng([d.lat, d.lng]); window.mapaPasacalle.panTo([d.lat, d.lng]);
+                }
+            });
+
+            const listados = [
+                { col: 'mayordomia', renderCaja: renderMayordomo },
+                { col: 'integrantes', renderCaja: renderIntegrante },
+                { col: 'actividades', renderCaja: renderActividad },
+                { col: 'catalogo', renderCaja: renderProducto }
+            ];
+            listados.forEach(cfg => {
+                onSnapshot(getColRef(cfg.col), (snapshot) => {
+                    const cajaP = document.getElementById(`contenido-${cfg.col}`); const cajaA = document.getElementById(`lista-admin-${cfg.col}`);
+                    if (snapshot.empty) { cajaP.innerHTML = `<p class="text-center w-full col-span-full">Aún no hay registros.</p>`; cajaA.innerHTML = ''; return; }
+                    let htmlP = ''; let htmlA = '';
+                    snapshot.forEach(d => {
+                        htmlP += cfg.renderCaja(d.data(), d.id);
+                        htmlA += `<div class="flex justify-between items-center border-b pb-1 text-sm bg-white p-2 mb-1"><span class="truncate pr-2"><b>${d.data().c1}</b></span><button onclick="window.eliminarItem('${cfg.col}', '${d.id}')" class="bg-red-200 text-red-800 px-2 py-1 rounded">Borrar</button></div>`;
+                    });
+                    cajaP.innerHTML = htmlP; cajaA.innerHTML = htmlA;
+                });
+            });
+        }
+        
+        window.agregarItem = async function(col, ids) {
+            if(!auth.currentUser) return;
+            const data = {}; ids.forEach((id, i) => { data['c'+(i+1)] = document.getElementById(id) ? document.getElementById(id).value : ''; });
+            if(!data.c1 || !data.c2) return window.mostrarMensaje("Llena los campos principales.");
+            data.fecha = new Date(); await addDoc(getColRef(col), data);
+            ids.forEach(id => { if(document.getElementById(id)) document.getElementById(id).value = ''; });
+            window.mostrarMensaje("Añadido con éxito.");
+        };
+        window.eliminarItem = async function(col, id) { if(!auth.currentUser) return; if(confirm("¿Borrar permanentemente?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', col, id)); };
+        window.guardarHistoria = async function() { if(!auth.currentUser) return; await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'historia', 'principal'), { texto: document.getElementById('input-historia').value }); window.mostrarMensaje("Historia actualizada."); };
+        window.guardarEstadoMapa = async function() { if(!auth.currentUser) return; await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'mapa', 'estado'), { texto: document.getElementById('input-estado-mapa').value }); window.mostrarMensaje("Letrero actualizado."); };
+        
+        setTimeout(() => {
+            if(!window.mapaPasacalle && document.getElementById('mapa-leaflet')) {
+                window.mapaPasacalle = L.map('mapa-leaflet').setView([-9.9306, -76.2422], 15);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: 'OSM' }).addTo(window.mapaPasacalle);
+                const icono = L.divIcon({ className: 'contenedor-marcador', html: '<div class="punto-vivo"></div>', iconSize: [24, 24], iconAnchor: [12, 12] });
+                window.marcadorCofradia = L.marker([-9.9306, -76.2422], {icon: icono}).addTo(window.mapaPasacalle);
+            }
+        }, 1000);
+
+        window.transmitirGPS = function() {
+            const btn = document.getElementById('btn-transmitir-admin');
+            if (watchId) { navigator.geolocation.clearWatch(watchId); watchId = null; btn.classList.replace('bg-green-600', 'bg-red-700'); btn.innerText = "📡 INICIAR TRANSMISIÓN OFICIAL"; return window.mostrarMensaje("Transmisión de GPS detenida."); }
+            if (!navigator.geolocation) return window.mostrarMensaje("Tu navegador no soporta GPS.");
+            window.mostrarMensaje("Activando GPS... Acepta los permisos.");
+            watchId = navigator.geolocation.watchPosition((p) => {
+                btn.classList.replace('bg-red-700', 'bg-green-600'); btn.innerText = "📡 TRANSMITIENDO EN VIVO...";
+                const lat = p.coords.latitude; const lng = p.coords.longitude;
+                if(window.marcadorCofradia) { window.marcadorCofradia.setLatLng([lat, lng]); window.mapaPasacalle.panTo([lat, lng]); }
+                if(db && auth.currentUser) setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'mapa', 'ubicacion'), { lat, lng, time: new Date() }).catch(e=>console.log(e));
+            }, (e) => window.mostrarMensaje("Error GPS."), { enableHighAccuracy: true });
+        };
+        window.simularMovimiento = function() {
+            if (simulacionInterval) { clearInterval(simulacionInterval); simulacionInterval=null; return window.mostrarMensaje("Simulación Detenida."); }
+            window.mostrarMensaje("Iniciando simulación...");
+            let lat = -9.9306; let lng = -76.2422;
+            simulacionInterval = setInterval(() => {
+                lat += (Math.random()-0.5)*0.0005; lng += (Math.random()-0.5)*0.0005;
+                if(window.marcadorCofradia) { window.marcadorCofradia.setLatLng([lat, lng]); window.mapaPasacalle.panTo([lat, lng]); }
+            }, 2000);
+        };
+        
+        window.cambiarTabAdmin = () => { const v = document.getElementById('admin-selector').value; document.querySelectorAll('.admin-tab').forEach(t => t.classList.add('hidden')); document.getElementById(v).classList.remove('hidden'); };
+        window.abrirModalPassword = () => { document.getElementById('input-password').value = ''; const m = document.getElementById('modal-password'); m.classList.remove('hidden'); setTimeout(()=>m.classList.remove('opacity-0'),10); };
+        window.cerrarModalPassword = () => { const m = document.getElementById('modal-password'); m.classList.add('opacity-0'); setTimeout(()=>m.classList.add('hidden'),300); };
+        window.verificarAdmin = () => { if(document.getElementById('input-password').value === 'admin123') { window.cerrarModalPassword(); document.getElementById('btn-admin-nav').classList.remove('hidden'); window.cambiarSeccion('panel', document.getElementById('btn-admin-nav')); window.mostrarMensaje("Centro de Mando Activado."); } else { window.cerrarModalPassword(); window.mostrarMensaje("Clave incorrecta."); } };
+    </script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+/* STREAMING_CHUNK:Fondo oscuro de la página... */
+body {
+background-color: #0a0503;
+background-image:
+linear-gradient(rgba(10, 5, 3, 0.65), rgba(15, 8, 5, 0.8)),
+url('https://i.imgur.com/UAOAQvN.png');
+background-size: cover;
+background-attachment: fixed;
+background-position: center center;
+background-repeat: no-repeat;
+margin: 0;
+overflow-x: hidden;
+}
+
+/* STREAMING_CHUNK:Fuentes y efecto dorado... */
+.letra-titulo { font-family: 'Cinzel Decorative', serif; }
+.letra-texto { font-family: 'Playfair Display', serif; }
+
+.dorado-virreinal {
+background: linear-gradient(to bottom, #fffdf2 0%, #f7d774 15%, #c89637 35%, #3b2108 48%, #5e3b12 50%, #fde89c 53%, #c89637 75%, #1c0c01 100%);
+-webkit-background-clip: text;
+background-clip: text;
+color: transparent;
+filter: drop-shadow(0px -1px 0px rgba(255, 255, 255, 0.5)) drop-shadow(0px 5px 3px rgba(0, 0, 0, 0.85)) drop-shadow(0px 15px 25px rgba(0, 0, 0, 0.95));
+}
+
+/* STREAMING_CHUNK:Nuevo pergamino viejo de fondo... /
+.fondo-pergamino {
+background-color: #f0e6d2; / Color crema de respaldo si el internet falla /
+background-image: url('https://i.imgur.com/FOifXqt.png'); / La nueva imagen! /
+background-size: 100% 100%; / Estira el pergamino con el texto /
+background-repeat: no-repeat;
+background-position: center;
+border: none;
+box-shadow: 0 25px 50px rgba(0,0,0,0.9);
+position: relative;
+/ Relleno crítico: empuja las letras al centro para que NO toquen la madera enrollada de la imagen */
+padding: 12% 10% 12% 10% !important;
+}
+
+/* STREAMING_CHUNK:Animaciones de las pestañas... */
+.seccion-oculta { display: none !important; }
+
+.aparecer { animation: fadeIn 0.8s ease-out forwards; }
+@keyframes fadeIn {
+from { opacity: 0; transform: translateY(15px); }
+to { opacity: 1; transform: translateY(0); }
+}
