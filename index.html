@@ -145,13 +145,41 @@
                     <h3 class="letra-titulo text-[#ffe066] tracking-[0.4em] uppercase text-xs md:text-sm">Cofradía de Negritos</h3>
                 </div>
                 
-                <img src="https://i.imgur.com/2RISwHk.png" alt="Niño Jesús de Paucarbambilla" class="texto-iluminado relative z-10 w-[95%] md:w-[75%] lg:w-[65%] max-w-[700px] mb-6 object-contain drop-shadow-[0_15px_20px_rgba(0,0,0,0.85)]">
+                <img src="https://i.imgur.com/2RISwHk.png" alt="Niño Jesús de Paucarbambilla" class="texto-iluminado relative z-10 w-[95%] md:w-[75%] lg:w-[65%] max-w-[700px] mb-4 object-contain drop-shadow-[0_15px_20px_rgba(0,0,0,0.85)]">
                 
-                <div class="flex items-center justify-center gap-6 w-full max-w-md z-10">
+                <div class="flex items-center justify-center gap-6 w-full max-w-md z-10 mb-2">
                     <div class="h-[2px] flex-1 bg-gradient-to-r from-transparent to-[#c89637]"></div>
                     <span class="letra-texto italic text-2xl text-[#f4e8d3] font-semibold drop-shadow-md">Huánuco - Perú</span>
                     <div class="h-[2px] flex-1 bg-gradient-to-l from-transparent to-[#c89637]"></div>
                 </div>
+
+                <!-- CONTADOR REGRESIVO AÑADIDO AQUÍ -->
+                <div class="z-10 mt-3 flex flex-col items-center bg-[#1a0f0a]/60 border border-[#c89637]/40 rounded-xl px-4 py-3 md:px-6 md:py-3 backdrop-blur-md shadow-[0_10px_25px_rgba(0,0,0,0.8)] hover:scale-105 transition-transform duration-300">
+                    <p class="text-[#f4e8d3] text-[10px] md:text-xs font-semibold mb-1 tracking-widest uppercase letra-texto text-center">Faltan para la Víspera:</p>
+                    <div class="flex items-center justify-center gap-2 md:gap-4">
+                        <div class="flex flex-col items-center">
+                            <span id="cd-dias" class="letra-titulo text-2xl md:text-4xl text-[#ffe066] font-black drop-shadow-md">00</span>
+                            <span class="text-[9px] md:text-[10px] text-[#c89637] font-bold uppercase tracking-widest mt-1">Días</span>
+                        </div>
+                        <span class="text-xl md:text-3xl text-[#8b4513] font-black self-start mt-1 animate-pulse">:</span>
+                        <div class="flex flex-col items-center">
+                            <span id="cd-horas" class="letra-titulo text-2xl md:text-4xl text-[#ffe066] font-black drop-shadow-md">00</span>
+                            <span class="text-[9px] md:text-[10px] text-[#c89637] font-bold uppercase tracking-widest mt-1">Hrs</span>
+                        </div>
+                        <span class="text-xl md:text-3xl text-[#8b4513] font-black self-start mt-1 animate-pulse">:</span>
+                        <div class="flex flex-col items-center">
+                            <span id="cd-minutos" class="letra-titulo text-2xl md:text-4xl text-[#ffe066] font-black drop-shadow-md">00</span>
+                            <span class="text-[9px] md:text-[10px] text-[#c89637] font-bold uppercase tracking-widest mt-1">Min</span>
+                        </div>
+                        <span class="text-xl md:text-3xl text-[#8b4513] font-black self-start mt-1 animate-pulse">:</span>
+                        <div class="flex flex-col items-center">
+                            <span id="cd-segundos" class="letra-titulo text-2xl md:text-4xl text-[#ffe066] font-black drop-shadow-md">00</span>
+                            <span class="text-[9px] md:text-[10px] text-[#c89637] font-bold uppercase tracking-widest mt-1">Seg</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- FIN CONTADOR -->
+
             </div>
 
             <div class="fondo-pergamino w-full p-8 md:p-14 text-[#2d160a]">
@@ -389,17 +417,34 @@
         let particles = []; let fireworks = [];
         const colors = ['255, 215, 0', '255, 140, 0', '255, 255, 255', '218, 165, 32', '255, 69, 0'];
         
-        window.lastSponsorTime = 0;
-        window.auspiciadoresUrls = []; // Ahora la base de datos lo llenará automáticamente
+        window.lastSponsorTimeLeft = 0;
+        window.lastSponsorTimeRight = 0;
+        window.ultimoLogoMostrado = null;
+        window.auspiciadoresUrls = [];
         
-        window.spawnSponsor = function(x, y) {
+        window.spawnSingleSponsor = function(x, y) {
             if(window.auspiciadoresUrls.length === 0) return;
+            
+            // Elegimos un logo diferente al último que se mostró (si hay más de 1)
+            let urlElegida = window.auspiciadoresUrls[0];
+            if (window.auspiciadoresUrls.length > 1) {
+                do {
+                    let index = Math.floor(Math.random() * window.auspiciadoresUrls.length);
+                    urlElegida = window.auspiciadoresUrls[index];
+                } while (urlElegida === window.ultimoLogoMostrado);
+            }
+            window.ultimoLogoMostrado = urlElegida;
+            
+            // Creamos 1 solo logo en las coordenadas exactas de la explosión
             const img = document.createElement('img');
-            img.src = window.auspiciadoresUrls[Math.floor(Math.random() * window.auspiciadoresUrls.length)];
+            img.src = urlElegida;
             img.className = 'sponsor-flotante';
             img.style.left = x + 'px';
             img.style.top = y + 'px';
+            
             document.body.appendChild(img);
+            
+            // Lo desaparecemos a los 8 segundos
             setTimeout(() => { img.remove(); }, 8000); 
         };
 
@@ -422,14 +467,17 @@
                     let particleCount = Math.floor(Math.random() * 100 + 120); 
                     for (let i = 0; i < particleCount; i++) particles.push(new Particle(this.x, this.y, this.color));
                     
-                    // Lógica mágica: Si pasaron 10 seg Y explotó en el 25% lateral (izq o der), soltar logo
                     const now = Date.now();
-                    const enBordeIzquierdo = this.x < (canvas.width * 0.25);
-                    const enBordeDerecho = this.x > (canvas.width * 0.75);
+                    const enBordeIzquierdo = this.x < (canvas.width * 0.35); // Margen izquierdo
+                    const enBordeDerecho = this.x > (canvas.width * 0.65); // Margen derecho
                     
-                    if (now - window.lastSponsorTime > 10000 && (enBordeIzquierdo || enBordeDerecho)) {
-                        window.lastSponsorTime = now;
-                        window.spawnSponsor(this.x, this.y);
+                    // Evaluamos cada lado por separado
+                    if (enBordeIzquierdo && (now - window.lastSponsorTimeLeft > 8000)) {
+                        window.lastSponsorTimeLeft = now;
+                        window.spawnSingleSponsor(this.x, this.y);
+                    } else if (enBordeDerecho && (now - window.lastSponsorTimeRight > 8000)) {
+                        window.lastSponsorTimeRight = now;
+                        window.spawnSingleSponsor(this.x, this.y);
                     }
                     
                     return false; 
@@ -475,6 +523,39 @@
             requestAnimationFrame(animate);
         }
         animate();
+    </script>
+
+    <script>
+        function iniciarContador() {
+            // Fecha objetivo: 14 de Enero de 2027 a las 18:00:00 (6 p.m.)
+            const fechaObjetivo = new Date('January 14, 2027 18:00:00').getTime();
+            
+            const intervalo = setInterval(() => {
+                const ahora = new Date().getTime();
+                const distancia = fechaObjetivo - ahora;
+                
+                if (distancia < 0) {
+                    clearInterval(intervalo);
+                    document.getElementById('cd-dias').innerText = "00";
+                    document.getElementById('cd-horas').innerText = "00";
+                    document.getElementById('cd-minutos').innerText = "00";
+                    document.getElementById('cd-segundos').innerText = "00";
+                    return;
+                }
+                
+                const dias = Math.floor(distancia / (1000 * 60 * 60 * 24));
+                const horas = Math.floor((distancia % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutos = Math.floor((distancia % (1000 * 60 * 60)) / (1000 * 60));
+                const segundos = Math.floor((distancia % (1000 * 60)) / 1000);
+                
+                document.getElementById('cd-dias').innerText = dias < 10 ? '0' + dias : dias;
+                document.getElementById('cd-horas').innerText = horas < 10 ? '0' + horas : horas;
+                document.getElementById('cd-minutos').innerText = minutos < 10 ? '0' + minutos : minutos;
+                document.getElementById('cd-segundos').innerText = segundos < 10 ? '0' + segundos : segundos;
+            }, 1000);
+        }
+        // Iniciar el contador al cargar la página
+        iniciarContador();
     </script>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -624,16 +705,15 @@
                 if (s.exists() && window.marcadorCofradia && window.mapaPasacalle) { const d = s.data(); window.marcadorCofradia.setLatLng([d.lat, d.lng]); window.mapaPasacalle.panTo([d.lat, d.lng]); }
             });
 
-            // Escuchar Auspiciadores de forma especial
             onSnapshot(getColRef('auspiciadores'), (snapshot) => {
                 const cajaA = document.getElementById('lista-admin-auspiciadores');
-                window.auspiciadoresUrls = []; // Reiniciar arreglo global
+                window.auspiciadoresUrls = [];
                 if (snapshot.empty) { cajaA.innerHTML = '<p class="text-center text-gray-500 py-2">Sin auspiciadores activos.</p>'; return; }
                 
                 let htmlA = '';
                 snapshot.forEach(d => {
                     const data = d.data();
-                    if(data.c2) window.auspiciadoresUrls.push(data.c2); // Agregar URL a los fuegos artificiales
+                    if(data.c2) window.auspiciadoresUrls.push(data.c2); 
                     
                     const dataStr = encodeURIComponent(JSON.stringify(data));
                     htmlA += `<div class="flex justify-between items-center border-b border-gray-300 pb-2 text-sm bg-white p-3 mb-2 rounded shadow-sm">
@@ -756,6 +836,7 @@
                 if(db && auth.currentUser) setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'mapa', 'ubicacion'), { lat, lng, time: new Date() }).catch(e=>console.log(e));
             }, (e) => window.mostrarMensaje("Error GPS."), { enableHighAccuracy: true });
         };
+        
         window.simularMovimiento = function() {
             if (simulacionInterval) { clearInterval(simulacionInterval); simulacionInterval=null; return window.mostrarMensaje("Simulación Detenida."); }
             window.mostrarMensaje("Iniciando simulación..."); let lat = -9.9306; let lng = -76.2422;
